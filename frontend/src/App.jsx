@@ -63,13 +63,19 @@ function App() {
               onChange={(e) => setUrl(e.target.value)}
               required
             />
-            <input
-              type="text"
+            <select
               className="form-control"
-              placeholder="SELECTOR (OPTIONAL)"
               value={selector}
               onChange={(e) => setSelector(e.target.value)}
-            />
+            >
+              <option value="">SELECTOR: DEFAULT (TEXT)</option>
+              <option value="h1, h2, h3, h4, h5, h6">HEADINGS ONLY</option>
+              <option value="p">PARAGRAPHS ONLY</option>
+              <option value="a">LINKS (URLs)</option>
+              <option value="img">IMAGES</option>
+              <option value="table">TABLES</option>
+              <option value="ul, ol, li">LISTS</option>
+            </select>
           </div>
           <button type="submit" className="submit-btn" disabled={isLoading || !url}>
             {isLoading ? 'SCRAPING...' : 'EXTRACT DATA'}
