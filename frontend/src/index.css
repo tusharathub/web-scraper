@@ -1,144 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono&display=swap');
+@import "tailwindcss";
 
-:root {
-  --bg-color: #EBEBEB;
-  --text-main: #1A1A1A;
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@theme {
+  --color-primary: #1A1A1A;
+  --color-secondary: #EBEBEB;
+  --color-placeholder: rgba(26, 26, 26, 0.4);
+  --color-border: rgba(26, 26, 26, 0.2);
+  --font-anton: 'Anton', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 }
 
 body {
-  font-family: 'Space Mono', monospace;
-  background-color: var(--bg-color);
-  color: var(--text-main);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: 100%;
-}
-
-header {
-  display: flex;
-  justify-content: space-between;
-  padding: 2rem;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.nav-item {
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  text-decoration: underline;
-}
-
-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  text-align: center;
-}
-
-h1 {
-  font-family: 'Anton', sans-serif;
-  font-size: clamp(4rem, 15vw, 12rem);
-  line-height: 0.95;
-  text-transform: uppercase;
-  letter-spacing: -0.03em;
-  margin-bottom: 3rem;
-}
-
-.form-container {
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  /* gap: 1rem; */
-}
-
-.input-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.form-control {
-  flex: 1;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid var(--text-main);
-  padding: 0.5rem;
-  font-family: 'Space Mono', monospace;
-  font-size: 1rem;
-  color: var(--text-main);
-  outline: none;
-}
-
-.form-control::placeholder {
-  color: rgba(26, 26, 26, 0.4);
-}
-
-.submit-btn {
-  background: var(--text-main);
-  color: var(--bg-color);
-  border: none;
-  padding: 1rem 2rem;
-  font-family: 'Space Mono', monospace;
-  font-size: 1rem;
-  text-transform: uppercase;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: opacity 0.2s;
-}
-
-.submit-btn:hover {
-  opacity: 0.8;
-}
-
-.submit-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.error {
-  color: red;
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
-
-.results-container {
-  margin-top: 4rem;
-  width: 100%;
-  max-width: 800px;
-  text-align: left;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 2px solid var(--text-main);
-  padding-bottom: 0.5rem;
-  margin-bottom: 1.5rem;
-  text-transform: uppercase;
-}
-
-.element-item {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(26, 26, 26, 0.2);
-  word-wrap: break-word;
+  @apply bg-secondary text-primary font-mono min-h-screen flex flex-col;
 }
