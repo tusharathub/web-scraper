@@ -6,7 +6,6 @@ import httpx
 from bs4 import BeautifulSoup
 import traceback
 
-
 app = FastAPI(title="Web Scraper API")
 
 # Allow CORS for local development

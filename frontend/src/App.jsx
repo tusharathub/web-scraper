@@ -45,13 +45,8 @@ function App() {
 
   return (
     <div className="app-container">
-      <header>
-        <div className="nav-item">DARK MODE</div>
-        <div className="nav-item">MENU</div>
-        <div className="nav-item">LET'S TALK!</div>
-      </header>
-
       <main>
+        <div className="nav-item" style={{ position: 'absolute', top: '2rem', right: '2rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer' }} onClick={() => window.open('https://github.com/tusharathub', '_blank')}>LET'S TALK!</div>
         <h1>
           WEB SCRAPE<br/>
           DATA AND<br/>
