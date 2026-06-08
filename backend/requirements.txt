@@ -3,3 +3,5 @@ uvicorn
 beautifulsoup4
 httpx
 pydantic
+groq
+python-dotenv

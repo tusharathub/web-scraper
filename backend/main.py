@@ -1,10 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict
 import httpx
 from bs4 import BeautifulSoup
 import traceback
+import os
+from groq import Groq
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="Web Scraper API")
 
@@ -25,6 +30,14 @@ class ScrapeResponse(BaseModel):
     url: str
     title: Optional[str]
     elements: list[str]
+    error: Optional[str] = None
+
+class AiChatRequest(BaseModel):
+    data: list[str]
+    prompt: str
+
+class AiChatResponse(BaseModel):
+    response: str
     error: Optional[str] = None
 
 @app.post("/api/scrape", response_model=ScrapeResponse)
@@ -58,5 +71,31 @@ async def scrape_url(req: ScrapeRequest):
         traceback.print_exc()
         return ScrapeResponse(url=req.url, title=None, elements=[], error=str(e))
 
+
+@app.post("/api/chat", response_model=AiChatResponse)
+async def chat_with_data(req: AiChatRequest):
+    try:
+        if not os.getenv("GROQ_API_KEY"):
+            raise HTTPException(status_code=500, detail="Groq API Key is missing.")
+
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        # Combine scraped data to provide as context
+        context_data = "\n".join(req.data[:100]) # Limit to first 100 elements to avoid context window issues
+        system_instruction = f"You are an AI assistant helping the user analyze some scraped web data. Here is the data they scraped:\n\n{context_data}\n\nAnswer their questions based on this data."
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": req.prompt}
+            ],
+            model="llama-3.1-8b-instant",
+        )
+        
+        return AiChatResponse(response=response.choices[0].message.content)
+
+    except Exception as e:
+        traceback.print_exc()
+        return AiChatResponse(response="", error=str(e))
 
 # run command -> python -m uvicorn main:app --reload --port 8000
