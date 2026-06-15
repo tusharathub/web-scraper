@@ -1,13 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 import httpx
 from bs4 import BeautifulSoup
 import traceback
 import os
 from groq import Groq
 from dotenv import load_dotenv
+
+# Import pipeline core modules
+from pipeline import (
+    PipelineConfig, 
+    PipelineManager, 
+    JobDetails,
+    JobMetadata
+)
 
 load_dotenv()
 
@@ -97,5 +105,57 @@ async def chat_with_data(req: AiChatRequest):
     except Exception as e:
         traceback.print_exc()
         return AiChatResponse(response="", error=str(e))
+
+
+# ==========================================
+# PIPELINE ENDPOINTS
+# ==========================================
+
+@app.post("/api/pipeline/run", response_model=JobDetails)
+async def run_pipeline(config: PipelineConfig):
+    try:
+        details = await PipelineManager.run(config)
+        return details
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Pipeline execution error: {str(e)}")
+
+
+class JobChatRequest(BaseModel):
+    data: List[str]
+    prompt: str
+    model: Optional[str] = "llama-3.1-8b-instant"
+
+
+@app.post("/api/pipeline/chat")
+async def chat_stateless(req: JobChatRequest):
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Groq API Key is not set in backend environment.")
+        
+    try:
+        client = Groq(api_key=api_key)
+        
+        # Combine elements as context
+        context_data = "\n".join(req.data[:100])
+        system_instruction = (
+            "You are an AI assistant helping the user analyze some scraped web data.\n"
+            f"Here is the cleaned data that they extracted:\n\n{context_data}\n\n"
+            "Answer the user's questions based on this data. Be concise, direct and helpful."
+        )
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": req.prompt}
+            ],
+            model=req.model or "llama-3.1-8b-instant",
+            temperature=0.3
+        )
+        
+        return {"response": response.choices[0].message.content}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Groq Chat API call failed: {str(e)}")
 
 # run command -> python -m uvicorn main:app --reload --port 8000
