@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -6,6 +6,7 @@ import httpx
 from bs4 import BeautifulSoup
 import traceback
 import os
+import time
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -81,7 +82,10 @@ async def scrape_url(req: ScrapeRequest):
 
 
 @app.post("/api/chat", response_model=AiChatResponse)
-async def chat_with_data(req: AiChatRequest):
+async def chat_with_data(req: AiChatRequest, request: Request):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    check_ai_rate_limit(client_ip, limit=AI_LIMIT_CHAT, window=AI_LIMIT_WINDOW)
+
     try:
         if not os.getenv("GROQ_API_KEY"):
             raise HTTPException(status_code=500, detail="Groq API Key is missing.")
@@ -108,11 +112,49 @@ async def chat_with_data(req: AiChatRequest):
 
 
 # ==========================================
+# RATE LIMITER LOGIC
+# ==========================================
+
+# In-memory record tracking client IP -> list of AI request timestamps
+ai_rate_limits = {}
+
+# Configurable limits from environment variables with sensible defaults
+AI_LIMIT_RUNS = int(os.getenv("AI_LIMIT_RUNS", "5"))         # max AI ingestions per window
+AI_LIMIT_CHAT = int(os.getenv("AI_LIMIT_CHAT", "10"))        # max AI queries per window
+AI_LIMIT_WINDOW = int(os.getenv("AI_LIMIT_WINDOW", "60"))    # time window in seconds
+
+def check_ai_rate_limit(client_ip: str, limit: int, window: int):
+    """Checks and updates client request rate records. Raises 429 if limit exceeded."""
+    now = time.time()
+    
+    if client_ip not in ai_rate_limits:
+        ai_rate_limits[client_ip] = []
+        
+    # Filter out timestamps older than the time window
+    timestamps = [t for t in ai_rate_limits[client_ip] if now - t < window]
+    ai_rate_limits[client_ip] = timestamps
+    
+    if len(timestamps) >= limit:
+        # Calculate approximate time to wait until next token is available
+        wait_time = int(window - (now - timestamps[0]))
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded for AI features. Please retry in {wait_time} seconds."
+        )
+        
+    ai_rate_limits[client_ip].append(now)
+
+
+# ==========================================
 # PIPELINE ENDPOINTS
 # ==========================================
 
 @app.post("/api/pipeline/run", response_model=JobDetails)
-async def run_pipeline(config: PipelineConfig):
+async def run_pipeline(config: PipelineConfig, request: Request):
+    if config.analysis.run_ai:
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        check_ai_rate_limit(client_ip, limit=AI_LIMIT_RUNS, window=AI_LIMIT_WINDOW)
+
     try:
         details = await PipelineManager.run(config)
         return details
@@ -128,7 +170,10 @@ class JobChatRequest(BaseModel):
 
 
 @app.post("/api/pipeline/chat")
-async def chat_stateless(req: JobChatRequest):
+async def chat_stateless(req: JobChatRequest, request: Request):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    check_ai_rate_limit(client_ip, limit=AI_LIMIT_CHAT, window=AI_LIMIT_WINDOW)
+
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Groq API Key is not set in backend environment.")
